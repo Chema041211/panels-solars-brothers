@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir Tareas</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        /* Estilos para la sección de subir tareas */
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+
+        .upload-section {
+            margin-bottom: 20px;
+        }
+
+        .upload-section h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-section input[type="file"] {
+            margin-bottom: 15px;
+        }
+
+        .upload-section button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        .upload-section button:hover {
+            background-color: #0056b3;
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #007bff;
+        }
+
+        .error {
+            color: red;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .file-content {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            white-space: pre-wrap; /* Para conservar el formato del texto */
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Subir Tareas</h1>
+
+        <!-- Sección para Eretza -->
+        <div class="upload-section">
+            <h2>Eretza</h2>
+            <input type="file" id="fileEretza" accept=".txt,.pdf,.doc,.docx">
+            <button onclick="uploadFile('fileEretza')">Subir Archivo</button>
+            <div id="messageEretza" class="message"></div>
+            <div id="contentEretza" class="file-content"></div>
+        </div>
+
+        <!-- Sección para Luis -->
+        <div class="upload-section">
+            <h2>Luis</h2>
+            <input type="file" id="fileLuis" accept=".txt,.pdf,.doc,.docx">
+            <button onclick="uploadFile('fileLuis')">Subir Archivo</button>
+            <div id="messageLuis" class="message"></div>
+            <div id="contentLuis" class="file-content"></div>
+        </div>
+
+        <!-- Sección para Emmanuel -->
+        <div class="upload-section">
+            <h2>Emmanuel</h2>
+            <input type="file" id="fileEmmanuel" accept=".txt,.pdf,.doc,.docx">
+            <button onclick="uploadFile('fileEmmanuel')">Subir Archivo</button>
+            <div id="messageEmmanuel" class="message"></div>
+            <div id="contentEmmanuel" class="file-content"></div>
+        </div>
+    </div>
+
+    <!-- Incluir PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+
+    <script>
+        // Función para leer y mostrar el contenido del archivo
+        function uploadFile(inputId) {
+            const fileInput = document.getElementById(inputId);
+            const messageElement = document.getElementById(`message${inputId.replace('file', '')}`);
+            const contentElement = document.getElementById(`content${inputId.replace('file', '')}`);
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+
+                // Leer el contenido del archivo
+                reader.onload = function (e) {
+                    const content = e.target.result;
+                    messageElement.innerText = `Archivo "${file.name}" subido correctamente.`;
+                    messageElement.style.color = "#007bff";
+
+                    // Mostrar el contenido del archivo
+                    if (file.type === "text/plain") {
+                        contentElement.innerText = content; // Mostrar texto plano
+                    } else if (file.type === "application/pdf") {
+                        renderPDF(content, contentElement); // Mostrar PDF
+                    } else {
+                        contentElement.innerText = "El contenido no se puede mostrar para este tipo de archivo.";
+                    }
+                };
+
+                // Manejar errores
+                reader.onerror = function () {
+                    messageElement.innerText = "Error al leer el archivo.";
+                    messageElement.style.color = "red";
+                    contentElement.innerText = "";
+                };
+
+                // Leer el archivo como texto o binario
+                if (file.type === "text/plain") {
+                    reader.readAsText(file);
+                } else if (file.type === "application/pdf") {
+                    reader.readAsArrayBuffer(file); // Leer PDF como binario
+                } else {
+                    messageElement.innerText = "Tipo de archivo no soportado para visualización.";
+                    messageElement.style.color = "red";
+                    contentElement.innerText = "";
+                }
+            } else {
+                messageElement.innerText = "Por favor, selecciona un archivo.";
+                messageElement.style.color = "red";
+                contentElement.innerText = "";
+            }
+        }
+
+        // Función para renderizar un PDF
+        function renderPDF(data, container) {
+            container.innerHTML = ""; // Limpiar el contenedor
+
+            // Cargar el PDF con PDF.js
+            pdfjsLib.getDocument({ data }).promise.then(pdf => {
+                // Renderizar la primera página
+                pdf.getPage(1).then(page => {
+                    const scale = 1.5;
+                    const viewport = page.getViewport({ scale });
+
+                    // Crear un canvas para renderizar la página
+                    const canvas = document.createElement("canvas");
+                    const context = canvas.getContext("2d");
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    // Renderizar la página en el canvas
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport,
+                    };
+                    page.render(renderContext).promise.then(() => {
+                        container.appendChild(canvas); // Mostrar el canvas en el contenedor
+                    });
+                });
+            }).catch(error => {
+                container.innerText = "Error al cargar el PDF.";
+                console.error(error);
+            });
+        }
+    </script>
+
+</body>
+</html>
