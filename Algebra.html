@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Matrices y Mínimos Cuadrados</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            width: 90%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .matrix-input {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .matrix-input h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .matrix-input input {
+            width: 50px;
+            height: 30px;
+            margin: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls button {
+            background: #ff6f61;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .controls button:hover {
+            background: #ff3b2f;
+        }
+
+        .result {
+            text-align: center;
+        }
+
+        .result h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .result-matrix {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .result-matrix table {
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+
+        .result-matrix td {
+            border: 1px solid #fff;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .error-message {
+            color: #ff3b2f;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        .least-squares {
+            margin-top: 40px;
+        }
+
+        .least-squares input {
+            width: 80px;
+            height: 30px;
+            margin: 5px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .chart-container {
+            width: 80%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+    </style>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Calculadora de Matrices</h1>
+
+        <!-- Entrada de matrices -->
+        <div class="matrix-input">
+            <div>
+                <h2>Matriz A</h2>
+                <div id="matrixA"></div>
+            </div>
+            <div>
+                <h2>Matriz B</h2>
+                <div id="matrixB"></div>
+            </div>
+        </div>
+
+        <!-- Controles -->
+        <div class="controls">
+            <label for="rows">Filas:</label>
+            <input type="number" id="rows" min="1" value="2">
+            <label for="cols">Columnas:</label>
+            <input type="number" id="cols" min="1" value="2">
+            <button onclick="createMatrices()">Generar Matrices</button>
+        </div>
+
+        <!-- Operaciones -->
+        <div class="controls">
+            <button onclick="sumMatrices()">Sumar (A + B)</button>
+            <button onclick="subtractMatrices()">Restar (A - B)</button>
+            <button onclick="multiplyMatrices()">Multiplicar (A * B)</button>
+            <button onclick="transposeMatrix('A')">Transpuesta de A</button>
+            <button onclick="transposeMatrix('B')">Transpuesta de B</button>
+            <button onclick="inverseMatrix('A')">Inversa de A</button>
+            <button onclick="inverseMatrix('B')">Inversa de B</button>
+        </div>
+
+        <!-- Resultado -->
+        <div class="result">
+            <h2>Resultado</h2>
+            <div class="result-matrix" id="resultMatrix"></div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+    </div>
+
+    <!-- Sección de Mínimos Cuadrados -->
+    <div class="container least-squares">
+        <h1>Mínimos Cuadrados</h1>
+        <div>
+            <label for="numPoints">Número de puntos:</label>
+            <input type="number" id="numPoints" min="2" value="2">
+            <button onclick="generatePointInputs()">Generar Campos</button>
+        </div>
+        <div id="pointsInput"></div>
+        <button onclick="calculateLeastSquares()">Calcular</button>
+        <div class="result">
+            <h2>Resultado</h2>
+            <div id="leastSquaresResult"></div>
+        </div>
+        <div class="chart-container">
+            <canvas id="regressionChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Función para crear las matrices
+        function createMatrices() {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            let matrixA = document.getElementById('matrixA');
+            let matrixB = document.getElementById('matrixB');
+            matrixA.innerHTML = '';
+            matrixB.innerHTML = '';
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    matrixA.innerHTML += `<input type="number" id="A${i}${j}" placeholder="A[${i}][${j}]">`;
+                    matrixB.innerHTML += `<input type="number" id="B${i}${j}" placeholder="B[${i}][${j}]">`;
+                }
+                matrixA.innerHTML += '<br>';
+                matrixB.innerHTML += '<br>';
+            }
+        }
+
+        // Función para obtener una matriz desde los inputs
+        function getMatrix(matrixId, rows, cols) {
+            let matrix = [];
+            for (let i = 0; i < rows; i++) {
+                matrix[i] = [];
+                for (let j = 0; j < cols; j++) {
+                    matrix[i][j] = parseFloat(document.getElementById(`${matrixId}${i}${j}`).value) || 0;
+                }
+            }
+            return matrix;
+        }
+
+        // Función para mostrar una matriz en el resultado
+        function displayMatrix(matrix) {
+            let resultDiv = document.getElementById('resultMatrix');
+            let tableHTML = '<table>';
+            for (let i = 0; i < matrix.length; i++) {
+                tableHTML += '<tr>';
+                for (let j = 0; j < matrix[i].length; j++) {
+                    tableHTML += `<td>${matrix[i][j].toFixed(2)}</td>`;
+                }
+                tableHTML += '</tr>';
+            }
+            tableHTML += '</table>';
+            resultDiv.innerHTML = tableHTML;
+            document.getElementById('errorMessage').innerText = ''; // Limpiar mensaje de error
+        }
+
+        // Función para mostrar un mensaje de error
+        function displayError(message) {
+            document.getElementById('errorMessage').innerText = message;
+            document.getElementById('resultMatrix').innerHTML = '';
+        }
+
+        // Función para calcular el determinante de una matriz
+        function determinant(matrix) {
+            if (matrix.length === 2) {
+                return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+            }
+            let det = 0;
+            for (let i = 0; i < matrix.length; i++) {
+                let subMatrix = matrix.slice(1).map(row => row.filter((_, j) => j !== i));
+                det += matrix[0][i] * Math.pow(-1, i) * determinant(subMatrix);
+            }
+            return det;
+        }
+
+        // Función para calcular la matriz de cofactores
+        function cofactorMatrix(matrix) {
+            let cofactor = [];
+            for (let i = 0; i < matrix.length; i++) {
+                cofactor[i] = [];
+                for (let j = 0; j < matrix[i].length; j++) {
+                    let subMatrix = matrix.filter((_, x) => x !== i).map(row => row.filter((_, y) => y !== j));
+                    cofactor[i][j] = Math.pow(-1, i + j) * determinant(subMatrix);
+                }
+            }
+            return cofactor;
+        }
+
+        // Función para calcular la inversa de una matriz
+        function inverseMatrix(matrixId) {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            if (rows !== cols) {
+                displayError("La matriz debe ser cuadrada para calcular la inversa.");
+                return;
+            }
+            const matrix = getMatrix(matrixId, rows, cols);
+            const det = determinant(matrix);
+            if (det === 0) {
+                displayError("La matriz no tiene inversa (determinante = 0).");
+                return;
+            }
+            const cofactor = cofactorMatrix(matrix);
+            const adjugate = transposeMatrixFromArray(cofactor);
+            let inverse = [];
+            for (let i = 0; i < adjugate.length; i++) {
+                inverse[i] = [];
+                for (let j = 0; j < adjugate[i].length; j++) {
+                    inverse[i][j] = adjugate[i][j] / det;
+                }
+            }
+            displayMatrix(inverse);
+        }
+
+        // Función para transponer una matriz desde un array
+        function transposeMatrixFromArray(matrix) {
+            let result = [];
+            for (let i = 0; i < matrix[0].length; i++) {
+                result[i] = [];
+                for (let j = 0; j < matrix.length; j++) {
+                    result[i][j] = matrix[j][i];
+                }
+            }
+            return result;
+        }
+
+        // Operaciones
+        function sumMatrices() {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            const A = getMatrix('A', rows, cols);
+            const B = getMatrix('B', rows, cols);
+            let result = [];
+            for (let i = 0; i < rows; i++) {
+                result[i] = [];
+                for (let j = 0; j < cols; j++) {
+                    result[i][j] = A[i][j] + B[i][j];
+                }
+            }
+            displayMatrix(result);
+        }
+
+        function subtractMatrices() {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            const A = getMatrix('A', rows, cols);
+            const B = getMatrix('B', rows, cols);
+            let result = [];
+            for (let i = 0; i < rows; i++) {
+                result[i] = [];
+                for (let j = 0; j < cols; j++) {
+                    result[i][j] = A[i][j] - B[i][j];
+                }
+            }
+            displayMatrix(result);
+        }
+
+        function multiplyMatrices() {
+            const rowsA = parseInt(document.getElementById('rows').value);
+            const colsA = parseInt(document.getElementById('cols').value);
+            const rowsB = colsA; // Para multiplicar, las columnas de A deben ser iguales a las filas de B
+            const colsB = parseInt(document.getElementById('cols').value);
+            const A = getMatrix('A', rowsA, colsA);
+            const B = getMatrix('B', rowsB, colsB);
+            let result = [];
+            for (let i = 0; i < rowsA; i++) {
+                result[i] = [];
+                for (let j = 0; j < colsB; j++) {
+                    result[i][j] = 0;
+                    for (let k = 0; k < colsA; k++) {
+                        result[i][j] += A[i][k] * B[k][j];
+                    }
+                }
+            }
+            displayMatrix(result);
+        }
+
+        function transposeMatrix(matrixId) {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            const matrix = getMatrix(matrixId, rows, cols);
+            let result = [];
+            for (let i = 0; i < cols; i++) {
+                result[i] = [];
+                for (let j = 0; j < rows; j++) {
+                    result[i][j] = matrix[j][i];
+                }
+            }
+            displayMatrix(result);
+        }
+
+        // Mínimos Cuadrados
+        let points = [];
+        let regressionChart = null;
+
+        function generatePointInputs() {
+            const numPoints = parseInt(document.getElementById('numPoints').value);
+            const pointsInput = document.getElementById('pointsInput');
+            pointsInput.innerHTML = '';
+            points = [];
+            for (let i = 0; i < numPoints; i++) {
+                pointsInput.innerHTML += `
+                    <div>
+                        <input type="number" id="x${i}" placeholder="x${i}">
+                        <input type="number" id="y${i}" placeholder="y${i}">
+                    </div>
+                `;
+                points.push({ x: 0, y: 0 });
+            }
+        }
+
+        function calculateLeastSquares() {
+            // Obtener los puntos ingresados
+            for (let i = 0; i < points.length; i++) {
+                points[i].x = parseFloat(document.getElementById(`x${i}`).value) || 0;
+                points[i].y = parseFloat(document.getElementById(`y${i}`).value) || 0;
+            }
+
+            // Calcular las sumas necesarias
+            const n = points.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            for (const point of points) {
+                sumX += point.x;
+                sumY += point.y;
+                sumXY += point.x * point.y;
+                sumX2 += point.x * point.x;
+            }
+
+            // Calcular la pendiente (m) y el intercepto (b)
+            const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const b = (sumY - m * sumX) / n;
+
+            // Mostrar el resultado
+            const resultDiv = document.getElementById('leastSquaresResult');
+            resultDiv.innerHTML = `
+                <p>Ecuación de la recta: y = ${m.toFixed(2)}x + ${b.toFixed(2)}</p>
+            `;
+
+            // Graficar los puntos y la línea de regresión
+            plotRegressionLine(points, m, b);
+        }
+
+        function plotRegressionLine(points, m, b) {
+            const ctx = document.getElementById('regressionChart').getContext('2d');
+
+            // Destruir el gráfico anterior si existe
+            if (regressionChart) {
+                regressionChart.destroy();
+            }
+
+            // Crear el gráfico
+            regressionChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Puntos',
+                            data: points.map(point => ({ x: point.x, y: point.y })),
+                            backgroundColor: 'rgba(255, 99, 132, 1)',
+                        },
+                        {
+                            label: 'Línea de regresión',
+                            data: [
+                                { x: Math.min(...points.map(p => p.x)), y: m * Math.min(...points.map(p => p.x)) + b },
+                                { x: Math.max(...points.map(p => p.x)), y: m * Math.max(...points.map(p => p.x)) + b }
+                            ],
+                            type: 'line',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            fill: false,
+                            showLine: true,
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                            },
+                            ticks: {
+                                color: '#fff',
+                            },
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                            },
+                            ticks: {
+                                color: '#fff',
+                            },
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#fff',
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
