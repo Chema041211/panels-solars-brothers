@@ -134,6 +134,8 @@
     </style>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -196,6 +198,42 @@
         <div class="chart-container">
             <canvas id="regressionChart"></canvas>
         </div>
+    </div>
+
+    <!-- Sección de Parábola -->
+    <div class="container least-squares">
+        <h1>Ajuste de Parábola</h1>
+        <div>
+            <label for="numPointsParabola">Número de puntos:</label>
+            <input type="number" id="numPointsParabola" min="3" value="3">
+            <button onclick="generateParabolaInputs()">Generar Campos</button>
+        </div>
+        <div id="parabolaInput"></div>
+        <button onclick="calculateParabola()">Calcular Parábola</button>
+        <div class="result">
+            <h2>Resultado</h2>
+            <div id="parabolaResult"></div>
+        </div>
+        <div class="chart-container">
+            <canvas id="parabolaChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Sección de Plano 3D -->
+    <div class="container least-squares">
+        <h1>Ajuste de Plano en 3D</h1>
+        <div>
+            <label for="numPointsPlane">Número de puntos:</label>
+            <input type="number" id="numPointsPlane" min="3" value="3">
+            <button onclick="generatePointInputs3D('planeInput')">Generar Campos</button>
+        </div>
+        <div id="planeInput"></div>
+        <button onclick="calculatePlane()">Calcular Plano</button>
+        <div class="result">
+            <h2>Resultado</h2>
+            <div id="planeResult"></div>
+        </div>
+        <div id="planeChart" style="width: 100%; height: 400px;"></div>
     </div>
 
     <script>
@@ -448,7 +486,7 @@
                         {
                             label: 'Puntos',
                             data: points.map(point => ({ x: point.x, y: point.y })),
-                            backgroundColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 1)', // Color de los puntos (rojo)
                         },
                         {
                             label: 'Línea de regresión',
@@ -457,7 +495,7 @@
                                 { x: Math.max(...points.map(p => p.x)), y: m * Math.max(...points.map(p => p.x)) + b }
                             ],
                             type: 'line',
-                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderColor: 'rgba(54, 162, 235, 1)', // Color de la línea de regresión (azul)
                             borderWidth: 2,
                             fill: false,
                             showLine: true,
@@ -494,6 +532,309 @@
                     }
                 }
             });
+        }
+
+        // Funciones para Parábola
+        let parabolaPoints = [];
+        let parabolaChart = null;
+
+        function generateParabolaInputs() {
+            const numPoints = parseInt(document.getElementById('numPointsParabola').value);
+            const parabolaInput = document.getElementById('parabolaInput');
+            parabolaInput.innerHTML = '';
+            parabolaPoints = [];
+            for (let i = 0; i < numPoints; i++) {
+                parabolaInput.innerHTML += `
+                    <div>
+                        <input type="number" id="parabolaX${i}" placeholder="x${i}">
+                        <input type="number" id="parabolaY${i}" placeholder="y${i}">
+                    </div>
+                `;
+                parabolaPoints.push({ x: 0, y: 0 });
+            }
+        }
+
+        function calculateParabola() {
+            const n = parabolaPoints.length;
+            if (n < 3) {
+                alert("Se necesitan al menos 3 puntos para ajustar una parábola.");
+                return;
+            }
+
+            let sumX = 0, sumY = 0, sumX2 = 0, sumX3 = 0, sumX4 = 0, sumXY = 0, sumX2Y = 0;
+
+            for (let i = 0; i < n; i++) {
+                const x = parseFloat(document.getElementById(`parabolaX${i}`).value) || 0;
+                const y = parseFloat(document.getElementById(`parabolaY${i}`).value) || 0;
+                parabolaPoints[i] = { x, y };
+
+                sumX += x;
+                sumY += y;
+                sumX2 += x * x;
+                sumX3 += x * x * x;
+                sumX4 += x * x * x * x;
+                sumXY += x * y;
+                sumX2Y += x * x * y;
+            }
+
+            // Sistema de ecuaciones para la parábola
+            const A = [
+                [n, sumX, sumX2],
+                [sumX, sumX2, sumX3],
+                [sumX2, sumX3, sumX4]
+            ];
+            const B = [sumY, sumXY, sumX2Y];
+
+            // Resolver el sistema
+            const coefficients = solveLinearSystem(A, B);
+            if (!coefficients) {
+                alert("No se pudo resolver el sistema de ecuaciones. Verifica los puntos ingresados.");
+                return;
+            }
+
+            const [c, b, a] = coefficients;
+
+            // Mostrar resultado
+            const resultDiv = document.getElementById('parabolaResult');
+            resultDiv.innerHTML = `
+                <p>Ecuación de la parábola: y = ${a.toFixed(2)}x² + ${b.toFixed(2)}x + ${c.toFixed(2)}</p>
+            `;
+
+            // Graficar la parábola
+            plotParabola(parabolaPoints, a, b, c);
+        }
+
+        function plotParabola(points, a, b, c) {
+            const ctx = document.getElementById('parabolaChart').getContext('2d');
+
+            if (parabolaChart) {
+                parabolaChart.destroy();
+            }
+
+            // Generar datos para la parábola
+            const minX = Math.min(...points.map(p => p.x));
+            const maxX = Math.max(...points.map(p => p.x));
+            const parabolaData = [];
+            for (let x = minX; x <= maxX; x += 0.1) {
+                parabolaData.push({ x: x, y: a * x * x + b * x + c });
+            }
+
+            // Crear el gráfico
+            parabolaChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Puntos',
+                            data: points.map(point => ({ x: point.x, y: point.y })),
+                            backgroundColor: 'rgba(255, 99, 132, 1)', // Color de los puntos (rojo)
+                        },
+                        {
+                            label: 'Parábola ajustada',
+                            data: parabolaData,
+                            type: 'line',
+                            borderColor: 'rgba(54, 162, 235, 1)', // Color de la parábola (azul)
+                            borderWidth: 2,
+                            fill: false,
+                            showLine: true,
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                        },
+                        y: {
+                            type: 'linear',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Funciones para Plano 3D
+        let planePoints = [];
+
+        function generatePointInputs3D(containerId) {
+            const numPoints = parseInt(document.getElementById('numPointsPlane').value);
+            const pointsInput = document.getElementById(containerId);
+            pointsInput.innerHTML = '';
+            planePoints = [];
+            for (let i = 0; i < numPoints; i++) {
+                pointsInput.innerHTML += `
+                    <div>
+                        <input type="number" id="x${i}" placeholder="x${i}">
+                        <input type="number" id="y${i}" placeholder="y${i}">
+                        <input type="number" id="z${i}" placeholder="z${i}">
+                    </div>
+                `;
+                planePoints.push({ x: 0, y: 0, z: 0 });
+            }
+        }
+
+        function calculatePlane() {
+            // Obtener los puntos ingresados
+            for (let i = 0; i < planePoints.length; i++) {
+                const x = parseFloat(document.getElementById(`x${i}`).value);
+                const y = parseFloat(document.getElementById(`y${i}`).value);
+                const z = parseFloat(document.getElementById(`z${i}`).value);
+                if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                    document.getElementById('planeResult').innerHTML = `
+                        <p>Error: Asegúrate de ingresar valores numéricos válidos para todos los puntos.</p>
+                    `;
+                    return;
+                }
+                planePoints[i] = { x: x, y: y, z: z }; // Actualizar los puntos
+            }
+
+            // Validar que haya al menos 3 puntos
+            if (planePoints.length < 3) {
+                document.getElementById('planeResult').innerHTML = `
+                    <p>Error: Se necesitan al menos 3 puntos para calcular un plano.</p>
+                `;
+                return;
+            }
+
+            // Calcular las sumas necesarias
+            const n = planePoints.length;
+            let sumX = 0, sumY = 0, sumZ = 0, sumXY = 0, sumXZ = 0, sumYZ = 0, sumX2 = 0, sumY2 = 0;
+            for (const point of planePoints) {
+                sumX += point.x;
+                sumY += point.y;
+                sumZ += point.z;
+                sumXY += point.x * point.y;
+                sumXZ += point.x * point.z;
+                sumYZ += point.y * point.z;
+                sumX2 += point.x * point.x;
+                sumY2 += point.y * point.y;
+            }
+
+            // Construir la matriz A y el vector B para el sistema de ecuaciones
+            const A = [
+                [n, sumX, sumY],
+                [sumX, sumX2, sumXY],
+                [sumY, sumXY, sumY2]
+            ];
+            const B = [sumZ, sumXZ, sumYZ];
+
+            // Resolver el sistema de ecuaciones para a, b, c
+            let a, b, c;
+            try {
+                [a, b, c] = solveLinearSystem(A, B);
+            } catch (error) {
+                document.getElementById('planeResult').innerHTML = `
+                    <p>Error: No se pudo calcular el plano. Asegúrate de que los puntos no estén alineados.</p>
+                `;
+                return;
+            }
+
+            // Mostrar el resultado
+            const resultDiv = document.getElementById('planeResult');
+            if (isNaN(a) || isNaN(b) || isNaN(c)) {
+                resultDiv.innerHTML = `
+                    <p>Error: No se pudo calcular el plano. Asegúrate de ingresar puntos válidos.</p>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <p>Ecuación del plano: z = ${a.toFixed(2)}x + ${b.toFixed(2)}y + ${c.toFixed(2)}</p>
+                `;
+                // Graficar los puntos y el plano
+                plotPlane(planePoints, a, b, c);
+            }
+        }
+
+        function plotPlane(points, a, b, c) {
+            const x = points.map(p => p.x);
+            const y = points.map(p => p.y);
+            const z = points.map(p => p.z);
+
+            const xRange = [Math.min(...x), Math.max(...x)];
+            const yRange = [Math.min(...y), Math.max(...y)];
+
+            const planeX = [];
+            const planeY = [];
+            const planeZ = [];
+            for (let i = xRange[0]; i <= xRange[1]; i += 0.5) {
+                for (let j = yRange[0]; j <= yRange[1]; j += 0.5) {
+                    planeX.push(i);
+                    planeY.push(j);
+                    planeZ.push(a * i + b * j + c);
+                }
+            }
+
+            const tracePoints = {
+                x: x,
+                y: y,
+                z: z,
+                mode: 'markers',
+                marker: {
+                    size: 5,
+                    color: 'red', // Color de los puntos (rojo)
+                },
+                type: 'scatter3d',
+                name: 'Puntos'
+            };
+
+            const tracePlane = {
+                x: planeX,
+                y: planeY,
+                z: planeZ,
+                mode: 'surface',
+                type: 'surface',
+                opacity: 0.7,
+                surfacecolor: 'rgba(54, 162, 235, 0.7)', // Color del plano (azul con transparencia)
+                name: 'Plano'
+            };
+
+            const layout = {
+                scene: {
+                    xaxis: { title: 'X' },
+                    yaxis: { title: 'Y' },
+                    zaxis: { title: 'Z' }
+                },
+                margin: { l: 0, r: 0, b: 0, t: 0 }
+            };
+
+            Plotly.newPlot('planeChart', [tracePoints, tracePlane], layout);
+        }
+
+        // Función para resolver un sistema de ecuaciones lineales
+        function solveLinearSystem(A, B) {
+            const n = A.length;
+            for (let i = 0; i < n; i++) {
+                // Buscar el máximo en la columna actual
+                let maxRow = i;
+                for (let j = i + 1; j < n; j++) {
+                    if (Math.abs(A[j][i]) > Math.abs(A[maxRow][i])) {
+                        maxRow = j;
+                    }
+                }
+
+                // Intercambiar filas
+                [A[i], A[maxRow]] = [A[maxRow], A[i]];
+                [B[i], B[maxRow]] = [B[maxRow], B[i]];
+
+                // Hacer cero todas las filas debajo de la actual
+                for (let j = i + 1; j < n; j++) {
+                    const factor = A[j][i] / A[i][i];
+                    for (let k = i; k < n; k++) {
+                        A[j][k] -= factor * A[i][k];
+                    }
+                    B[j] -= factor * B[i];
+                }
+            }
+
+            // Sustitución hacia atrás
+            const X = new Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                X[i] = B[i] / A[i][i];
+                for (let j = i - 1; j >= 0; j--) {
+                    B[j] -= A[j][i] * X[i];
+                }
+            }
+            return X;
         }
     </script>
 </body>
