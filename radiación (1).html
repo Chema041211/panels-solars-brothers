@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radiación Solar en México - Paneles Solares</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Estilos generales */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100%;
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar h3 {
+            color: #ecf0f1;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sidebar h3 i {
+            transition: transform 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .sidebar h3.collapsed i {
+            transform: rotate(-90deg);
+        }
+        
+        /* Sección de demanda eléctrica - más compacta */
+        .demanda-section {
+            background-color: #34495e;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .demanda-options {
+            list-style-type: none;
+            margin: 5px 0 0 0;
+            padding-left: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .demanda-options.show {
+            max-height: 200px;
+        }
+        
+        .demanda-options li {
+            padding: 6px 10px;
+            margin: 3px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.85rem;
+        }
+        
+        .demanda-options li:hover {
+            background-color: #3d566e;
+        }
+        
+        .demanda-options li.active {
+            background-color: #3498db;
+        }
+        
+        #demandaInfo {
+            margin-top: 10px;
+        }
+        
+        #demandaInfo p {
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+        
+        #demandaInfo strong {
+            color: #3498db;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 150px;
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        /* Main content */
+        .main-content {
+            margin-left: 280px;
+            transition: all 0.3s;
+        }
+        
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        nav {
+            margin-top: 20px;
+        }
+        
+        nav ul {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            list-style: none;
+        }
+        
+        nav li {
+            margin: 0 10px;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        nav a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Secciones */
+        section {
+            padding: 60px 0;
+        }
+        
+        section:nth-child(even) {
+            background-color: white;
+        }
+        
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+            margin: 25px 0 15px;
+            color: #3498db;
+        }
+        
+        h4 {
+            font-size: 1.2rem;
+            margin: 20px 0 10px;
+        }
+        
+        p {
+            margin-bottom: 15px;
+        }
+        
+        ul {
+            margin-bottom: 20px;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .section-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Formularios */
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        /* Mapa */
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        /* Footer */
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        /* Resultados */
+        .result {
+            font-size: 1.2rem;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 250px;
+            }
+            
+            .main-content {
+                margin-left: 250px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 1100;
+                background: #3498db;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+        }
+        
+        /* Botón de toggle para móvil */
+        .menu-toggle {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3>Menú</h3>
+        </div>
+        
+        <div class="demanda-section">
+            <h3 id="demandaToggle">
+                <i class="fas fa-bolt"></i> Demanda Eléctrica
+                <i class="fas fa-chevron-down"></i>
+            </h3>
+            <ul class="demanda-options" id="demandaOptions">
+                <li class="active" data-region="mexico">México</li>
+                <li data-region="baja-california">Baja California</li>
+                <li data-region="texas">Texas</li>
+            </ul>
+            
+            <div class="chart-container">
+                <canvas id="demandaChart"></canvas>
+            </div>
+            
+            <div id="demandaInfo">
+                <p><strong>Promedio:</strong> <span id="demandaPromedio">45 GW</span></p>
+                <p><strong>Variación:</strong> <span id="variacionAnual">±15%</span></p>
+                <p><strong>Horas pico:</strong> <span id="horasPico">14:00-20:00h</span></p>
+            </div>
+        </div>
+        
+        <div class="demanda-section">
+            <h3><i class="fas fa-solar-panel"></i> Potencial Solar</h3>
+            <ul>
+                <li>México recibe 5-6 kWh/m²/día</li>
+                <li>Norte: Alto potencial (6+ kWh/m²/día)</li>
+                <li>Sur: Buen potencial (5-6 kWh/m²/día)</li>
+                <li>Eficiencia paneles: 15-22%</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Botón de toggle para móvil -->
+    <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Contenido principal -->
+    <div class="main-content" id="mainContent">
+        <header>
+            <div class="container">
+                <h1>Radiación Solar en México</h1>
+                <p>¿Te conviene instalar paneles solares en tu casa?</p>
+                <nav>
+                    <ul>
+                        <li><a href="#intro">Introducción</a></li>
+                        <li><a href="#benefits">Beneficios</a></li>
+                        <li><a href="#savings">Calcula tu ahorro</a></li>
+                        <li><a href="#map-section">Mapa</a></li>
+                        <li><a href="#contact">Contacto</a></li>
+                        <li><a href="calculos.html" target="_blank">Cálculos Estadísticos</a></li>
+                        <li><a href="tareas.html" target="_blank">Tareas</a></li>
+                        <li><a href="Algebra.html" target="_blank">Algebra</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <section id="intro" class="intro">
+            <div class="container">
+                <h2>¿Qué es la radiación solar?</h2>
+                <p>La radiación solar es la energía emitida por el sol en forma de luz y calor. En México, contamos con un alto nivel de radiación solar, lo que hace que nuestro país sea ideal para aprovechar esta energía renovable.</p>
+
+                <h3>Definición y ejemplos de energía solar</h3>
+                <p>La definición de energía solar es la energía que proviene del Sol y que podemos captar gracias a la radiación solar. A menudo se utiliza el concepto de energía solar para referirse a la energía eléctrica o térmica que se obtiene utilizando la radiación solar. Esta fuente de energía representa la principal fuente energética en la Tierra. Debido a que es una fuente inagotable, se la considera una energía renovable.</p>
+
+                <h4>Ejemplos de energía solar</h4>
+                <p>Algunos ejemplos de energía solar son los siguientes:</p>
+                <ul>
+                    <li><strong>Instalaciones con placas solares fotovoltaicas:</strong> Para generar energía eléctrica en viviendas, refugios de montaña, etc.</li>
+                    <li><strong>Centrales fotovoltaicas:</strong> Grandes extensiones de placas fotovoltaicas cuyo objetivo es generar electricidad para suministrar en la red eléctrica.</li>
+                    <li><strong>Coches solares:</strong> Convierten la radiación solar en electricidad para accionar un motor eléctrico.</li>
+                    <li><strong>Cocinas solares:</strong> Sistemas para concentrar la radiación en un punto y elevar la temperatura para cocinar.</li>
+                    <li><strong>Sistemas de calefacción:</strong> Utilizan energía solar térmica para calentar un fluido que se puede utilizar en un circuito de calefacción.</li>
+                    <li><strong>Climatización de piscinas:</strong> Aprovechan la energía solar para mantener la temperatura del agua.</li>
+                    <li><strong>Calculadoras:</strong> Algunos dispositivos electrónicos disponen de una pequeña placa solar para suministrar energía al circuito eléctrico.</li>
+                    <li><strong>Fotosíntesis:</strong> Proceso natural que utilizan las plantas para convertir la energía solar en energía química.</li>
+                </ul>
+
+                <h3>Tipos de energía solar</h3>
+                <p>Existen tres tipos principales de energía solar:</p>
+                <ul>
+                    <li><strong>Energía solar fotovoltaica:</strong> Las placas solares fotovoltaicas están compuestas por un material que, al incidir la radiación solar, liberan electrones y generan una corriente eléctrica.</li>
+                    <li><strong>Energía solar térmica:</strong> Aprovecha la capacidad calorífica del Sol para calentar un fluido que se puede utilizar para calefacción, agua caliente sanitaria o generar electricidad en centrales termosolares.</li>
+                    <li><strong>Energía solar pasiva:</strong> Técnica que aprovecha el calor solar sin utilizar recursos externos, como en la arquitectura bioclimática, donde se orientan las casas y ventanas para maximizar la radiación solar.</li>
+                </ul>
+
+                <img src="https://images.unsplash.com/photo-1613665813446-82a78c468a1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Radiación Solar" class="section-image">
+            </div>
+        </section>
+
+        <section id="benefits" class="benefits">
+            <div class="container">
+                <h2>Beneficios de los Paneles Solares</h2>
+                
+                <h3>Ahorro en tu factura de luz</h3>
+                <p>
+                    Los paneles solares permiten generar tu propia electricidad a partir de la energía solar, lo que reduce considerablemente la cantidad de electricidad que necesitas comprar de la red eléctrica. A medida que tu sistema solar genera más energía, verás una disminución en el costo de tu factura mensual.
+                </p>
+
+                <h3>Energía limpia y renovable</h3>
+                <p>
+                    La energía solar es una fuente renovable que no produce emisiones de gases de efecto invernadero ni contaminantes. Al optar por paneles solares, contribuyes a la lucha contra el cambio climático y a la preservación del medio ambiente.
+                </p>
+
+                <h3>Reducción de tu huella de carbono</h3>
+                <p>
+                    Al usar energía solar, reduces la dependencia de fuentes de energía basadas en combustibles fósiles, lo que disminuye la cantidad de CO₂ emitido a la atmósfera. Cada kilovatio de energía solar que produces equivale a menos emisiones de carbono.
+                </p>
+
+                <h3>Incentivos fiscales y financiamientos disponibles</h3>
+                <p>
+                    Muchos gobiernos ofrecen incentivos fiscales, subsidios y programas de financiamiento para promover el uso de energías renovables. Estos incentivos pueden cubrir una parte importante de la instalación inicial, haciendo que los paneles solares sean más accesibles para los consumidores.
+                </p>
+
+                <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Paneles Solares" class="section-image">
+            </div>
+        </section>
+
+        <section id="savings" class="savings">
+            <div class="container">
+                <h2>Calcula tu ahorro</h2>
+                <p>Ingresa tu consumo mensual de electricidad (en kWh) para calcular cuánto podrías ahorrar con paneles solares:</p>
+                <form id="savingsForm">
+                    <label for="consumo">Consumo mensual (kWh):</label>
+                    <input type="number" id="consumo" name="consumo" required>
+                    <button type="button" onclick="calcularAhorro()">Calcular Ahorro</button>
+                </form>
+                <p id="resultado" class="result"></p>
+                <div class="chart-container">
+                    <canvas id="ahorroChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="map-section" class="map-section">
+            <div class="container">
+                <h2>Mapa de Radiación Solar</h2>
+                <p>Selecciona un punto en el mapa para obtener información detallada.</p>
+                <div id="map"></div>
+                <div id="info">
+                    <h3>Información del punto seleccionado:</h3>
+                    <p><strong>Coordenadas:</strong> <span id="coordenadas"></span></p>
+                    <p><strong>Altitud:</strong> <span id="altitud"></span></p>
+                    <p><strong>Radiación solar:</strong> <span id="radiacion"></span></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="contact">
+            <div class="container">
+                <h2>Contáctanos</h2>
+                <p>¿Tienes dudas o quieres una cotización personalizada? ¡Escríbenos!</p>
+                <form id="contactForm">
+                    <label for="name">Nombre:</label>
+                    <input type="text" id="name" name="name" required>
+                    <label for="email">Correo electrónico:</label>
+                    <input type="email" id="email" name="email" required>
+                    <label for="message">Mensaje:</label>
+                    <textarea id="message" name="message" rows="5" required></textarea>
+                    <button type="submit">Enviar</button>
+                </form>
+            </div>
+        </section>
+
+        <footer>
+            <div class="container">
+                <p>&copy; 2023 Radiación Solar en México. Todos los derechos reservados.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script>
+        // Navegación suave
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Mapa interactivo con Leaflet
+        let map;
+        let marker;
+
+        function initMap() {
+            map = L.map('map').setView([23.6345, -102.5528], 5); // Centrado en México
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            map.on('click', (e) => {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+
+                document.getElementById('coordenadas').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+                obtenerAltitud(lat, lng);
+                obtenerRadiacionSolar(lat, lng);
+
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                marker = L.marker([lat, lng]).addTo(map);
+            });
+        }
+
+        // Función para obtener la altitud
+        async function obtenerAltitud(lat, lng) {
+            const url = `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const altitud = data.results[0].elevation;
+                document.getElementById('altitud').textContent = `${altitud.toFixed(2)} metros`;
+            } catch (error) {
+                console.error("Error al obtener la altitud:", error);
+                document.getElementById('altitud').textContent = "No disponible";
+            }
+        }
+
+        // Función para obtener la radiación solar usando Open-Meteo
+        async function obtenerRadiacionSolar(lat, lng) {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=direct_radiation&timezone=auto`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Error en la solicitud: ${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+
+                if (data.hourly && data.hourly.direct_radiation) {
+                    // Tomamos la radiación solar promedio de las últimas 24 horas
+                    const radiacionData = data.hourly.direct_radiation;
+                    const radiacionPromedio = (radiacionData.reduce((sum, value) => sum + value, 0) / radiacionData.length);
+                    document.getElementById('radiacion').textContent = `${radiacionPromedio.toFixed(2)} W/m²`;
+                } else {
+                    throw new Error("Datos de radiación solar no disponibles");
+                }
+            } catch (error) {
+                console.error("Error al obtener datos de radiación solar:", error);
+                document.getElementById('radiacion').textContent = "No disponible";
+            }
+        }
+
+        // Función para calcular el ahorro
+        function calcularAhorro() {
+            const consumo = parseFloat(document.getElementById('consumo').value);
+
+            if (isNaN(consumo) || consumo <= 0) {
+                alert("Por favor, ingresa un valor válido.");
+                return;
+            }
+
+            const ahorroPorcentaje = 0.95;
+            const ahorroMensual = consumo * ahorroPorcentaje;
+
+            const resultado = document.getElementById('resultado');
+            resultado.textContent = `Con paneles solares, podrías ahorrar aproximadamente ${ahorroMensual.toFixed(2)} kWh al mes.`;
+            resultado.style.color = "#4CAF50";
+
+            // Gráfico de ahorro mensual con Chart.js
+            const ctx = document.getElementById('ahorroChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    datasets: [{
+                        label: 'Ahorro mensual (kWh)',
+                        data: Array.from({ length: 12 }, () => parseFloat((Math.random() * ahorroMensual).toFixed(2))),
+                        backgroundColor: '#4CAF50',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Función para actualizar el gráfico según la región seleccionada
+        function actualizarGraficoDemanda(region) {
+            const ctx = document.getElementById('demandaChart').getContext('2d');
+            let datos, titulo, demandaPromedio, variacion, horasPico;
+            
+            // Datos para cada región
+            switch(region) {
+                case 'mexico':
+                    datos = [45, 42, 40, 38, 39, 43, 47, 50, 48, 46, 44, 47];
+                    titulo = 'Demanda Eléctrica Nacional (GW)';
+                    demandaPromedio = '45 GW';
+                    variacion = '±15%';
+                    horasPico = '14:00-20:00h';
+                    break;
+                case 'baja-california':
+                    datos = [2.1, 2.0, 1.9, 1.8, 1.9, 2.1, 2.3, 2.4, 2.3, 2.2, 2.1, 2.2];
+                    titulo = 'Demanda Baja California (GW)';
+                    demandaPromedio = '2.1 GW';
+                    variacion = '±18%';
+                    horasPico = '15:00-21:00h';
+                    break;
+                case 'texas':
+                    datos = [60, 58, 55, 52, 54, 59, 65, 68, 64, 60, 58, 62];
+                    titulo = 'Demanda Texas (GW)';
+                    demandaPromedio = '60 GW';
+                    variacion = '±20%';
+                    horasPico = '13:00-19:00h';
+                    break;
+            }
+            
+            // Actualizar la información textual
+            document.getElementById('demandaPromedio').textContent = demandaPromedio;
+            document.getElementById('variacionAnual').textContent = variacion;
+            document.getElementById('horasPico').textContent = horasPico;
+            
+            // Destruir el gráfico anterior si existe
+            if (window.demandaChart) {
+                window.demandaChart.destroy();
+            }
+            
+            // Crear nuevo gráfico
+            window.demandaChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    datasets: [{
+                        label: titulo,
+                        data: datos,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Manejar el clic en el título de demanda
+        document.getElementById('demandaToggle').addEventListener('click', function() {
+            this.classList.toggle('collapsed');
+            document.getElementById('demandaOptions').classList.toggle('show');
+        });
+        
+        // Manejar la selección de región - CÓDIGO MODIFICADO PARA REDIRECCIÓN
+        document.querySelectorAll('#demandaOptions li').forEach(item => {
+            item.addEventListener('click', function() {
+                const region = this.getAttribute('data-region');
+                
+                if (region === 'mexico') {
+                    // Redirigir al dashboard completo de México
+                    window.location.href = 'mexico.html';
+                } else if (region === 'baja-california') {
+                    // Redirigir al dashboard completo de Baja California
+                    window.location.href = 'baja-california.html';
+                } else if (region === 'texas') {
+                    // Redirigir al dashboard completo de Texas
+                    window.location.href = 'texas.html';
+                } else {
+                    // Comportamiento original para otras regiones
+                    document.querySelectorAll('#demandaOptions li').forEach(li => {
+                        li.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    actualizarGraficoDemanda(region);
+                }
+            });
+        });
+
+        // Toggle del menú en móvil
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+        // Inicializar todo al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            actualizarGraficoDemanda('mexico');
+            
+            // Cerrar sidebar al hacer clic fuera en móvil
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    const sidebar = document.querySelector('.sidebar');
+                    const menuToggle = document.getElementById('menuToggle');
+                    
+                    if (!sidebar.contains(e.target) && e.target !== menuToggle) {
+                        sidebar.classList.remove('active');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Eléctrico Completo - Baja California</title>
+    <style>
+        /* ========== ESTILOS ORIGINALES (MANTENIDOS) ========== */
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 1rem;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+        }
+        button:hover {
+            background-color: #1e3c72;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+        }
+        button.active {
+            background-color: #0f2452;
+            box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            margin-bottom: 40px;
+            height: 70vh;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-wrapper {
+            flex-grow: 1;
+            min-height: 500px;
+        }
+        .info-panel {
+            background: #f0f5ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 25px;
+            border-left: 5px solid #2a5298;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .info-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        .info-item h3 {
+            margin-top: 0;
+            color: #2a5298;
+            font-size: 1rem;
+        }
+        .info-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1e3c72;
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                padding: 15px;
+                height: auto;
+            }
+            header {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* ========== NUEVOS ESTILOS AÑADIDOS ========== */
+        .additional-sections {
+            max-width: 1200px;
+            margin: 40px auto 0;
+        }
+        .dashboard-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+        .section-title {
+            color: #1e3c72;
+            border-bottom: 2px solid #f0f5ff;
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title i {
+            font-size: 1.3em;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        .card {
+            background: #f9faff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        .card h3 {
+            color: #2a5298;
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        .mini-chart {
+            height: 200px;
+            margin-top: 15px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online {
+            background-color: #2ecc71;
+        }
+        .status-warning {
+            background-color: #f39c12;
+        }
+        .status-offline {
+            background-color: #e74c3c;
+        }
+        .plant-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .plant-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .plant-list li:last-child {
+            border-bottom: none;
+        }
+        .plant-name {
+            font-weight: 500;
+        }
+        .plant-capacity {
+            color: #1e3c72;
+            font-weight: bold;
+        }
+        .weather-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .weather-icon {
+            font-size: 3.5rem;
+            color: #f39c12;
+        }
+        .weather-temp {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #2a5298;
+        }
+        .weather-details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .forecast-item {
+            text-align: center;
+            padding: 10px;
+        }
+        .forecast-day {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .alert-item {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: #fff4e5;
+            border-left: 4px solid #f39c12;
+        }
+        .alert-item.critical {
+            background-color: #ffebee;
+            border-left: 4px solid #e74c3c;
+        }
+        .progress-container {
+            margin: 15px 0;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .progress-bar {
+            height: 10px;
+            background-color: #e0e7ff;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2a5298, #1e3c72);
+            border-radius: 5px;
+        }
+        .map-container {
+            height: 250px;
+            background: #eef2ff;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- ========== SECCIÓN ORIGINAL (MANTENIDA) ========== -->
+    <div class="container">
+        <header>
+            <h1>⚡ DEMANDA ELÉCTRICA - BAJA CALIFORNIA</h1>
+            <p class="subtitle">Sistema de Monitoreo Energético en Tiempo Real</p>
+        </header>
+
+        <div class="controls">
+            <button onclick="loadData('24h')" class="active">Últimas 24h</button>
+            <button onclick="loadData('7d')">Últimos 7 días</button>
+            <button onclick="loadData('1m')">Último mes</button>
+            <button onclick="loadData('3m')">Últimos 3 meses</button>
+        </div>
+
+        <div class="chart-container">
+            <div id="loading" class="loading">Cargando datos de demanda...</div>
+            <div class="chart-wrapper">
+                <canvas id="demandChart"></canvas>
+            </div>
+            
+            <div class="info-panel">
+                <div class="info-item">
+                    <h3>Demanda Máxima</h3>
+                    <div class="info-value" id="max-demand">-- MW</div>
+                </div>
+                <div class="info-item">
+                    <h3>Demanda Mínima</h3>
+                    <div class="info-value" id="min-demand">-- MW</div>
+                </div>
+                <div class="info-item">
+                    <h3>Promedio</h3>
+                    <div class="info-value" id="avg-demand">-- MW</div>
+                </div>
+                <div class="info-item">
+                    <h3>Actualización</h3>
+                    <div class="info-value" id="update-time">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== NUEVAS SECCIONES AÑADIDAS ========== -->
+    <div class="additional-sections">
+        <!-- Sección 1: Estado de la Red -->
+        <div class="dashboard-section">
+            <h2 class="section-title"><i class="fas fa-network-wired"></i> Estado de la Red Eléctrica</h2>
+            <div class="grid-container">
+                <div class="card">
+                    <h3>Infraestructura Clave</h3>
+                    <div class="map-container">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Baja_California_in_Mexico_%28location_map_scheme%29.svg/1200px-Baja_California_in_Mexico_%28location_map_scheme%29.svg.png" 
+                             alt="Mapa de Baja California" class="map-placeholder">
+                    </div>
+                    <p style="text-align: center; margin-top: 10px; font-size: 0.9rem;">
+                        <i class="fas fa-info-circle"></i> 15 subestaciones activas | 2,850 MW de capacidad
+                    </p>
+                </div>
+                <div class="card">
+                    <h3>Plantas Principales</h3>
+                    <ul class="plant-list">
+                        <li>
+                            <span class="plant-name"><span class="status-indicator status-online"></span>Termoeléctrica Rosarito</span>
+                            <span class="plant-capacity">650 MW</span>
+                        </li>
+                        <li>
+                            <span class="plant-name"><span class="status-indicator status-online"></span>Ciclo Combinado Mexicali</span>
+                            <span class="plant-capacity">480 MW</span>
+                        </li>
+                        <li>
+                            <span class="plant-name"><span class="status-indicator status-warning"></span>Eólica Sierra Juárez</span>
+                            <span class="plant-capacity">155 MW</span>
+                        </li>
+                        <li>
+                            <span class="plant-name"><span class="status-indicator status-online"></span>Solar Aura III</span>
+                            <span class="plant-capacity">82 MW</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Balance del Sistema</h3>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Capacidad Total</span>
+                            <span>2,850 MW</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Demanda Actual</span>
+                            <span id="current-demand">1,720 MW</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 60%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>Reserva Operativa</span>
+                            <span>1,130 MW</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 2: Pronóstico y Clima -->
+        <div class="dashboard-section">
+            <h2 class="section-title"><i class="fas fa-chart-line"></i> Pronóstico y Factores</h2>
+            <div class="grid-container">
+                <div class="card">
+                    <h3>Demanda Esperada (24h)</h3>
+                    <div class="mini-chart">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.9rem;">
+                        <p><i class="fas fa-info-circle" style="color: #2a5298;"></i> <strong>Pico estimado:</strong> 1,850 MW a las 18:30</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Condiciones Actuales</h3>
+                    <div class="weather-card">
+                        <div class="weather-icon">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <div>
+                            <div class="weather-temp">32°C</div>
+                            <div class="weather-details">
+                                <p><strong>Mexicali</strong> - Soleado</p>
+                                <p>Humedad: 35% | Viento: 15 km/h</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <h4>Pronóstico Extendido</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <div class="forecast-item">
+                                <div class="forecast-day">Hoy</div>
+                                <i class="fas fa-sun" style="color: #f39c12; font-size: 1.5rem;"></i>
+                                <div>32° / 22°</div>
+                            </div>
+                            <div class="forecast-item">
+                                <div class="forecast-day">Mañana</div>
+                                <i class="fas fa-cloud-sun" style="color: #95a5a6; font-size: 1.5rem;"></i>
+                                <div>31° / 21°</div>
+                            </div>
+                            <div class="forecast-item">
+                                <div class="forecast-day">Miér</div>
+                                <i class="fas fa-cloud" style="color: #7f8c8d; font-size: 1.5rem;"></i>
+                                <div>29° / 20°</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Factores Clave</h3>
+                    <ul style="list-style-type: none; padding: 0;">
+                        <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-temperature-high" style="color: #e74c3c; width: 20px; text-align: center;"></i> 
+                            <strong>Temperatura:</strong> +2°C sobre lo normal
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-calendar-alt" style="color: #3498db; width: 20px; text-align: center;"></i> 
+                            <strong>Eventos:</strong> 3 eventos masivos hoy
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-industry" style="color: #9b59b6; width: 20px; text-align: center;"></i> 
+                            <strong>Industria:</strong> Operación al 92%
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-solar-panel" style="color: #f1c40f; width: 20px; text-align: center;"></i> 
+                            <strong>Generación Solar:</strong> 78 MW actuales
+                        </li>
+                        <li style="padding: 8px 0;">
+                            <i class="fas fa-bolt" style="color: #2ecc71; width: 20px; text-align: center;"></i> 
+                            <strong>Precio MWh:</strong> $1,450 (promedio)
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 3: Mix Energético -->
+        <div class="dashboard-section">
+            <h2 class="section-title"><i class="fas fa-bolt"></i> Composición Energética</h2>
+            <div class="grid-container">
+                <div class="card">
+                    <h3>Fuentes de Generación</h3>
+                    <div style="height: 250px;">
+                        <canvas id="energyMixChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.9rem; color: #666;">
+                        <p><i class="fas fa-info-circle"></i> Meta 2025: 30% de energía renovable</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Eficiencia del Sistema</h3>
+                    <div style="margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Transmisión</span>
+                            <span>94%</span>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px;">
+                            <div style="height: 100%; width: 94%; background: #2ecc71; border-radius: 5px;"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin: 15px 0 5px;">
+                            <span>Distribución</span>
+                            <span>89%</span>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px;">
+                            <div style="height: 100%; width: 89%; background: #3498db; border-radius: 5px;"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin: 15px 0 5px;">
+                            <span>Pérdidas Técnicas</span>
+                            <span>5.2%</span>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px;">
+                            <div style="height: 100%; width: 94.8%; background: #e74c3c; border-radius: 5px;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 25px;">
+                        <h4>Comparativa Anual</h4>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>2024</span>
+                            <span>2025</span>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px; margin-bottom: 15px;">
+                            <div style="height: 100%; width: 85%; background: linear-gradient(90deg, #2a5298, #1e3c72); border-radius: 5px;"></div>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px;">
+                            <div style="height: 100%; width: 92%; background: linear-gradient(90deg, #2a5298, #1e3c72); border-radius: 5px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Comparativa Regional</h3>
+                    <div style="margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Baja California</span>
+                            <span>1,720 MW</span>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px; margin-bottom: 15px;">
+                            <div style="height: 100%; width: 100%; background: linear-gradient(90deg, #2a5298, #1e3c72); border-radius: 5px;"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Sonora</span>
+                            <span>1,950 MW</span>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px; margin-bottom: 15px;">
+                            <div style="height: 100%; width: 85%; background: linear-gradient(90deg, #3498db, #2980b9); border-radius: 5px;"></div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Baja California Sur</span>
+                            <span>420 MW</span>
+                        </div>
+                        <div style="height: 10px; background: #e0e7ff; border-radius: 5px;">
+                            <div style="height: 100%; width: 45%; background: linear-gradient(90deg, #9b59b6, #8e44ad); border-radius: 5px;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; font-size: 0.9rem; color: #666;">
+                        <p><i class="fas fa-chart-bar"></i> Demanda promedio noroeste: 1,450 MW</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 4: Descargas -->
+        <div class="dashboard-section">
+            <h2 class="section-title"><i class="fas fa-download"></i> Descargas</h2>
+            <div class="grid-container">
+                <div class="card">
+                    <h3>Documentos Técnicos</h3>
+                    <div style="margin-top: 20px;">
+                        <button style="width: 100%; background: #2a5298; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: 500; margin-bottom: 15px;">
+                            <i class="fas fa-file-pdf"></i> Reporte Anual 2024
+                        </button>
+                        <button style="width: 100%; background: #2a5298; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: 500; margin-bottom: 15px;">
+                            <i class="fas fa-file-excel"></i> Datos Históricos (CSV)
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Información de Contacto</h3>
+                    <div style="margin-top: 15px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 40px; height: 40px; background: #f0f5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <i class="fas fa-phone-alt" style="color: #2ecc71;"></i>
+                            </div>
+                            <div>
+                                <strong>Emergencias 24/7</strong>
+                                <p style="margin: 5px 0 0; font-size: 0.9rem;">800 123 4567</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 40px; height: 40px; background: #f0f5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                <i class="fas fa-envelope" style="color: #3498db;"></i>
+                            </div>
+                            <div>
+                                <strong>Contacto Administrativo</strong>
+                                <p style="margin: 5px 0 0; font-size: 0.9rem;">contacto@bajacalifornia.gob.mx</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Mapas de Red</h3>
+                    <div style="margin-top: 20px;">
+                        <button style="width: 100%; background: #2a5298; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: 500;">
+                            <i class="fas fa-map"></i> Descargar Mapa de Red
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2025 Sistema Eléctrico de Baja California | Datos simulados con fines ilustrativos</p>
+    </footer>
+
+    <!-- Scripts para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    
+    <script>
+        // ========== CÓDIGO ORIGINAL DEL GRÁFICO PRINCIPAL (MANTENIDO) ==========
+        const mockData = {
+            '24h': generateData(800, 1700, 24, "Últimas 24 horas", true),
+            '7d': generateData(750, 1850, 7, "Últimos 7 días", false),
+            '1m': generateData(700, 1950, 30, "Últimos 30 días", false),
+            '3m': generateData(650, 2100, 90, "Últimos 3 meses", false)
+        };
+
+        function generateData(min, max, points, label, isHourly) {
+            const data = [];
+            const now = new Date();
+            let date = new Date(now);
+            
+            if (!isHourly) date.setDate(date.getDate() - points);
+            else date.setHours(date.getHours() - points);
+            
+            const seasonalFactor = 0.9 + Math.sin((now.getMonth() - 3) * Math.PI / 6) * 0.2;
+            
+            for (let i = 0; i < points; i++) {
+                let hourFactor = 1;
+                if (isHourly) {
+                    const hour = (date.getHours() + i) % 24;
+                    hourFactor = 0.6 + 0.5 * Math.sin((hour - 14) * Math.PI / 12);
+                }
+                
+                let dayFactor = 1;
+                if (!isHourly && points > 7) {
+                    const dayOfWeek = date.getDay();
+                    dayFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.85 : 1;
+                }
+                
+                const value = (min + (max - min) * hourFactor * dayFactor * (0.95 + Math.random() * 0.1) * seasonalFactor).toFixed(0);
+                
+                data.push({
+                    x: isHourly ? new Date(date.getTime() + i * 60 * 60 * 1000) : 
+                                 new Date(date.getFullYear(), date.getMonth(), date.getDate() + i),
+                    y: parseInt(value)
+                });
+            }
+            
+            return {
+                label: label,
+                data: data,
+                borderColor: '#2a5298',
+                backgroundColor: 'rgba(42, 82, 152, 0.1)',
+                borderWidth: 3,
+                pointRadius: 2,
+                fill: true,
+                tension: 0.2
+            };
+        }
+
+        const ctx = document.getElementById('demandChart').getContext('2d');
+        let demandChart = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: [] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 20, right: 20, bottom: 20, left: 20 } },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'DEMANDA ELÉCTRICA (MW) - BAJA CALIFORNIA',
+                        font: { size: 18, weight: 'bold' },
+                        padding: { top: 10, bottom: 30 }
+                    },
+                    legend: { 
+                        position: 'top',
+                        labels: { font: { size: 14, weight: '500' }, padding: 20, usePointStyle: true }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(30, 60, 114, 0.9)',
+                        titleFont: { size: 16, weight: 'bold' },
+                        bodyFont: { size: 14 },
+                        padding: 12,
+                        cornerRadius: 8
+                    },
+                    zoom: {
+                        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' },
+                        pan: { enabled: true, mode: 'xy' }
+                    },
+                    annotation: {
+                        annotations: {
+                            maxLine: {
+                                type: 'line',
+                                yMin: 0,
+                                yMax: 0,
+                                borderColor: 'rgba(255, 99, 132, 0.7)',
+                                borderWidth: 2,
+                                borderDash: [6, 6],
+                                label: {
+                                    content: 'Máximo histórico',
+                                    enabled: true,
+                                    position: 'right',
+                                    backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            displayFormats: { hour: 'HH:mm', day: 'd MMM', week: 'd MMM', month: 'MMM yyyy' },
+                            tooltipFormat: 'PPPPpppp'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Fecha y Hora',
+                            font: { size: 14, weight: 'bold' },
+                            padding: { top: 10 }
+                        },
+                        grid: { display: true, color: 'rgba(0, 0, 0, 0.05)' }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Megavatios (MW)',
+                            font: { size: 14, weight: 'bold' },
+                            padding: { bottom: 10 }
+                        },
+                        min: 0,
+                        grid: { display: true, color: 'rgba(0, 0, 0, 0.05)' }
+                    }
+                },
+                interaction: { intersect: false, mode: 'nearest' },
+                elements: { line: { cubicInterpolationMode: 'monotone' } }
+            }
+        });
+
+        function loadData(range) {
+            document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('demandChart').style.opacity = '0.5';
+            
+            setTimeout(() => {
+                const selectedData = mockData[range];
+                let timeUnit = range === '24h' ? 'hour' : 'day';
+                
+                demandChart.options.scales.x.time.unit = timeUnit;
+                demandChart.data.datasets = [selectedData];
+                demandChart.update();
+                
+                updateInfoPanel(selectedData.data, range);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('demandChart').style.opacity = '1';
+                
+                if (range === '3m') {
+                    demandChart.options.plugins.annotation.annotations.maxLine.yMax = 2100;
+                    demandChart.options.plugins.annotation.annotations.maxLine.yMin = 2100;
+                } else {
+                    demandChart.options.plugins.annotation.annotations.maxLine.yMax = 0;
+                    demandChart.options.plugins.annotation.annotations.maxLine.yMin = 0;
+                }
+                demandChart.update();
+            }, 800);
+        }
+
+        function updateInfoPanel(data, range) {
+            const values = data.map(item => item.y);
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+            const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+            
+            document.getElementById('max-demand').textContent = `${max.toLocaleString()} MW`;
+            document.getElementById('min-demand').textContent = `${min.toLocaleString()} MW`;
+            document.getElementById('avg-demand').textContent = `${avg.toLocaleString()} MW`;
+            
+            const now = new Date();
+            let updateText = range === '24h' ? 
+                now.toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) :
+                now.toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+            
+            document.getElementById('update-time').textContent = updateText;
+        }
+
+        window.onload = () => {
+            loadData('24h');
+            setInterval(() => {
+                if (document.querySelector('.controls button.active').textContent === 'Últimas 24h') {
+                    mockData['24h'] = generateData(800, 1700, 24, "Últimas 24 horas", true);
+                    loadData('24h');
+                }
+            }, 900000);
+        };
+
+        // ========== NUEVOS SCRIPTS PARA GRÁFICOS ADICIONALES ==========
+        // Gráfico de pronóstico
+        const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+        const forecastChart = new Chart(forecastCtx, {
+            type: 'line',
+            data: {
+                labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM', '12AM'],
+                datasets: [{
+                    label: 'Pronóstico (MW)',
+                    data: [850, 1100, 1450, 1600, 1550, 1300, 950],
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 60, 114, 0.9)',
+                        titleFont: { weight: 'bold' }
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: false,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    },
+                    x: { 
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de mix energético
+        const mixCtx = document.getElementById('energyMixChart').getContext('2d');
+        const energyMixChart = new Chart(mixCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Térmica', 'Ciclo Combinado', 'Eólica', 'Solar', 'Otras'],
+                datasets: [{
+                    data: [45, 30, 12, 8, 5],
+                    backgroundColor: ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#95a5a6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { 
+                        position: 'right',
+                        labels: { font: { size: 12 } }
+                    }
+                }
+            }
+        });
+
+        // Simular actualización de datos en tiempo real
+        function updateRealTimeData() {
+            const currentDemand = Math.floor(1500 + Math.random() * 300);
+            document.getElementById('current-demand').textContent = currentDemand.toLocaleString() + ' MW';
+            document.querySelector('.progress-bar:nth-of-type(2) .progress-fill').style.width = `${Math.floor((currentDemand / 2850) * 100)}%`;
+            
+            const temps = [30, 31, 32, 33, 34];
+            document.querySelector('.weather-temp').textContent = `${temps[Math.floor(Math.random() * temps.length)]}°C`;
+        }
+        
+        setInterval(updateRealTimeData, 30000);
+        updateRealTimeData();
+    </script>
+</body>
+</html>
